@@ -1,22 +1,30 @@
+import { IWeekInfo } from "./GameInfo";
+
+export interface WinPercentageData {
+  week: number;
+  winPercentage: number;
+}
+
 class Week {
   private weekNumber: number;
   private accuracy: number;
   private winPercentage: number;
   private totalGames = 0;
 
-  constructor(weekNumber: number, accuracy: number, win: boolean) {
-    this.weekNumber = weekNumber;
-    this.accuracy = accuracy;
+  constructor(obj: IWeekInfo) {
+    this.weekNumber = obj.weekNumber;
+    this.accuracy = obj.accuracy;
     this.winPercentage = 0;
-    this.setWinPercentage(win);
+    this.setWinPercentage(obj.win);
     this.totalGames++;
   }
 
   private setWinPercentage(win : boolean){
     let winNumber = win ? 1 : 0;
+    let currentPercentage = this.winPercentage / 100
     this.winPercentage =
-      (this.totalGames * this.winPercentage + winNumber) /
-      (this.totalGames + 1);
+      100 * ((this.totalGames * currentPercentage + winNumber) /
+      (this.totalGames + 1));
   }
 
   private setAccuracy(accuracy : number){
@@ -28,6 +36,13 @@ class Week {
     return this.weekNumber;
   }
 
+  getWinPercentageData(){
+    return <WinPercentageData>{
+      week: this.weekNumber,
+      winPercentage: this.winPercentage
+    };
+  }
+
   addValue(accuracy: number, win: boolean) {
     this.setAccuracy(accuracy);  
     this.setWinPercentage(win);
@@ -37,23 +52,27 @@ class Week {
 }
 
 export class WeeklyData {
-  opening: string;
-  weeks: Week[];
+  private weeks: Week[] = [];
 
-  constructor(opening: string) {
-    this.opening = opening;
-    this.weeks = [];
-  }
+  constructor() {}
 
-  addValue(weekNumber: number, accuracy: number, win: boolean) {
+  addValue(obj: IWeekInfo) {
     for (var week of this.weeks) {
-      if (week.getWeekNumber() === weekNumber) {
-        week.addValue(accuracy, win);
+      if (week.getWeekNumber() === obj.weekNumber) {
+        week.addValue(obj.accuracy, obj.win);
         return;
       }
     }
 
-    let newWeek = new Week(weekNumber, accuracy, win);
+    let newWeek = new Week(obj);
     this.weeks.push(newWeek);
+  }
+
+  getData() {
+    let winPercentage: WinPercentageData[] = [];
+    for (var week of this.weeks){
+      winPercentage.push(week.getWinPercentageData());
+    }
+    return winPercentage;
   }
 }

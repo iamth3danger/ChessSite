@@ -2,6 +2,7 @@ import { ChessMoveSender } from "./ChessMoveSender";
 import { PercentageInfo } from "./PercentageInfo";
 import { Opening } from "./Opening";
 import { OpeningResults } from "./OpeningResults";
+import { IGameInfo, GameInfo } from "./GameInfo";
 
 interface Player {
   rating: number;
@@ -32,56 +33,11 @@ interface Game {
   eco: string;
 }
 
-interface OpeningStats {
-  opening: string;
-  totalGames: number;
-  winPercentage: number;
-}
-
 interface ChessGames {
   games: Game[];
 }
 
-interface IGameInfo{
-  result: string;
-  opening: string;
-  sidePlayed: string;
-  opponent: string;
-  accuracyWhite: number;
-  accuracyBlack: number;
-  datetime: Date;
-  weekSinceStart: number;
-}
 
-class GameInfo {
-  private result: string;
-  private opening: string;
-  private sidePlayed: string;
-  private opponent: string;
-  private accuracyWhite: number;
-  private accuracyBlack: number;
-  private datetime: Date;
-  private weekSinceStart: number;
-
-  constructor(obj : IGameInfo) {
-    this.result = obj.result;
-    this.opening = obj.opening;
-    this.sidePlayed = obj.sidePlayed;
-    this.opponent = obj.opponent;
-    this.accuracyWhite = obj.accuracyWhite;
-    this.accuracyBlack = obj.accuracyBlack;
-    this.datetime = obj.datetime;
-    this.weekSinceStart = obj.weekSinceStart;
-  }
-
-  toString(): Record<string, string> {
-    return {
-      result: this.result,
-      side: this.sidePlayed,
-      opening: this.opening,
-    };
-  }
-}
 
 export class ChessGameFetcher {
   predefinedOpenings: string[] = [
@@ -156,63 +112,67 @@ export class ChessGameFetcher {
     "Vienna Game",
   ];
 
-  chess_openings: Record<
-    string,
-    {
-      wins: number;
-      losses: number;
-      draws: number;
-      subOpenings: Record<string, number>;
-    }
-  > = {};
-  
   //user_opening_data: OpeningData[] = [];
   percentageInfoArr: PercentageInfo[] = [];
 
-  moves: string[] = [];
   username: string;
-  month: string;
-  year: string;
+  startMonth: string;
+  startYear: string;
+  endMonth: string;
+  endYear: string;
   apiURL: string;
   games: Game[] = [];
   gameInfo: GameInfo[] = [];
   regex: RegExp = /openings\/([A-Za-z-]+)/;
   chessMoveSender: ChessMoveSender;
-  openingResults : OpeningResults = new OpeningResults();
+  openingResults: OpeningResults = new OpeningResults();
 
-  constructor(username: string, year: string, month: string) {
+  constructor(
+    username: string,
+    startYear: string,
+    startMonth: string,
+    endYear: string,
+    endMonth: string
+  ) {
     this.username = username;
-    this.year = year;
-    this.month = month;
-    this.apiURL = `https://api.chess.com/pub/player/${username}/games/${year}/${month}`;
+    this.startYear = startYear;
+    this.startMonth = startMonth;
 
-    this.predefinedOpenings.forEach((opening) => {
-      this.chess_openings[opening] = {
-        wins: 0,
-        losses: 0,
-        draws: 0,
-        subOpenings: {},
-      };
-    });
+    this.endYear = endYear;
+    this.endMonth = endMonth;
+
+    this.apiURL = `https://api.chess.com/pub/player/${username}/games/${startYear}/${startMonth}`;
 
     this.chessMoveSender = new ChessMoveSender();
   }
 
-  async fetchGames(): Promise<void> {
-    await this.fetchGameArchives();
-    this.logOpenings();
-    this.returnOpeningData();
-    this.getPercentages();
-  }
+  // async fetchGames(): Promise<void> {
+  //   await this.fetchGameArchives();
+  //   this.logOpenings();
+  //   this.returnOpeningData();
+  //   this.getPercentages();
+  // }
 
   async fetchGameArchives(): Promise<void> {
+    let endYear = parseInt(this.endYear);
+    let endMonth = parseInt(this.endMonth.replace("0", ""));
+    let year = parseInt(this.startYear);
+    let month = parseInt(this.startMonth.replace("0", ""));
     try {
-      const response = await fetch(this.apiURL);
-      if (response.ok) {
-        const data = (await response.json()) as ChessGames;
-        this.games = data.games;
-      } else {
-        throw new Error("Network response was not ok");
+      while (year != endYear || month != endMonth) {
+        let strMonth = month < 10 ? `0${month}` : month;
+        let apiURL = `https://api.chess.com/pub/player/${this.username}/games/${year}/${strMonth}`;
+        const response = await fetch(apiURL);
+        if (response.ok) {
+          const data = (await response.json()) as ChessGames;
+          this.games.push(...data.games);
+          //Possible error over 100000 elements
+        } else {
+          throw new Error("Network response was not ok");
+        }
+
+        month = (month % 12) + 1;
+        if (month == 1) year += 1;
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -226,24 +186,17 @@ export class ChessGameFetcher {
     }
   }
 
-  processChessString(input: string): void {
-    const cleanedGameData = input.replace(/\[.*?\]|\{.*?\}/g, "").trim();
-    this.moves.push(cleanedGameData);
-  }
-
-
   //Grabs useful data from the chess Api and processes it
-  logOpenings(): void {
+  logOpenings(): GameInfo[] {
     this.games.forEach((game) => {
+
       let opening = game.eco;
       let endTime = game.end_time;
       let date = new Date(endTime * 1000);
-      let startMonth = parseInt(this.month.replace("0", ""));
-      let startDate = new Date(`${startMonth}/1/${this.year}`);
+      let startMonth = parseInt(this.startMonth.replace("0", ""));
+      let startDate = new Date(`${startMonth}/1/${this.startYear}`);
       let unixStartDate = startDate.getTime() / 1000;
-
-      this.processChessString(game.pgn);
-
+  
       const sidePlayed =
         game.white.username === this.username ? "white" : "black";
 
@@ -253,65 +206,42 @@ export class ChessGameFetcher {
 
       const matchedOpening = this.matchOpening(opening);
 
-      if (matchedOpening) {
-        this.openingResults.updateOpeningResults(matchedOpening, result, opening);
-      } else {
+      if (!matchedOpening) {
         console.log(`Unmatched opening: ${opening}`);
       }
 
       const gameInfoObj = <IGameInfo>{
         result: result,
-        opening: opening,
+        generalOpening: matchedOpening,
+        subOpening: opening,
         sidePlayed: sidePlayed,
-        opponent: sidePlayed !== "white" ? game.white.username : game.black.username,
+        opponent:
+          sidePlayed !== "white" ? game.white.username : game.black.username,
         datetime: date,
         accuracyWhite: game.accuracies?.white ?? 0,
         accuracyBlack: game.accuracies?.black ?? 0,
         weekSinceStart: Math.floor((endTime - unixStartDate) / (3600 * 24 * 7)),
       };
 
-      this.gameInfo.push(
-        new GameInfo(
-          gameInfoObj
-        )
-      );
+      this.gameInfo.push(new GameInfo(gameInfoObj));
     });
+
+      console.log(this.games[2]);
+    return this.gameInfo;
   }
 
-
-  matchOpening(openingName : string){
+  private matchOpening(openingName: string) {
     const match = openingName.match(this.regex);
     if (match && match[1]) {
       openingName = match[1].replace(/-$/, "").replace(/-/g, " ");
     }
-    return this.predefinedOpenings.find((openingName) =>
-      openingName.includes(openingName)
-    );
+    return this.predefinedOpenings.find((name) => openingName.includes(name));
   }
 
-  normalizeResult(result: string): string {
+  private normalizeResult(result: string): string {
     if (["checkmated", "timeout", "resigned"].includes(result)) return "loss";
     if (["stalemate", "agreed", "repetition", "insufficient"].includes(result))
       return "draw";
     return result === "win" ? "win" : result;
   }
-
-
-  getPercentages(): void {
-    for (var opening of this.openingResults.getOpenings()) {
-
-      this.percentageInfoArr.push(
-        new PercentageInfo(
-          opening.getOpeningData(),
-          opening.getOpeningName()
-        )
-      );
-    }  
-
-    this.percentageInfoArr.sort((a, b) => {
-      return b.getPercentObj().totalGames - a.getPercentObj().totalGames;
-    });
-  }
-
-  
 }

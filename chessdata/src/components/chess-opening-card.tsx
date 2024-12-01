@@ -1,24 +1,24 @@
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
-interface ChessOpeningCardProps{
-  name : string;
-  winRate : number;
-  drawRate : number;
-  lossRate : number;
-  averageAccuracy : number;
+interface ChessOpeningCardProps {
+  name: string;
+  winRate: number;
+  drawRate: number;
+  lossRate: number;
+  averageAccuracy: number;
 }
 
-export function ChessOpeningCard({name, winRate, drawRate, lossRate, averageAccuracy} : ChessOpeningCardProps) {
-  // const openingStats = {
-  //   name: "Caro-Kann Defense",
-  //   winRate: 30,
-  //   drawRate: 45,
-  //   lossRate: 25,
-  //   averageAccuracy: 60,
-  // }
+export function ChessOpeningCard({
+  name,
+  winRate,
+  drawRate,
+  lossRate,
+  averageAccuracy,
+}: ChessOpeningCardProps) {
+
 
   return (
-    <Card className="w-[20vh] mx-auto bg-black text-white overflow-hidden flex flex-col transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-lg">
+    <Card className="w-[20vh] mx-auto bg-black text-white overflow-hidden flex flex-col transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-lg ">
       <CardHeader className="p-2">
         <CardTitle className="text-lg font-bold text-center truncate">
           {name}
@@ -39,18 +39,9 @@ export function ChessOpeningCard({name, winRate, drawRate, lossRate, averageAccu
             <span>Loss</span>
           </div>
           <div className="flex h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-green-500"
-              style={{ width: `${winRate}%` }}
-            />
-            <div
-              className="bg-gray-500"
-              style={{ width: `${drawRate}%` }}
-            />
-            <div
-              className="bg-red-500"
-              style={{ width: `${lossRate}%` }}
-            />
+            <div className="bg-green-500" style={{ width: `${winRate}%` }} />
+            <div className="bg-gray-500" style={{ width: `${drawRate}%` }} />
+            <div className="bg-red-500" style={{ width: `${lossRate}%` }} />
           </div>
           <div className="flex justify-between text-xs">
             <span>{winRate}%</span>
@@ -58,7 +49,7 @@ export function ChessOpeningCard({name, winRate, drawRate, lossRate, averageAccu
             <span>{lossRate}%</span>
           </div>
         </div>
-      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <span className="text-base font-medium">Avg Accuracy</span>
           <div className="relative w-16 h-16">
             <svg className="w-full h-full" viewBox="0 0 100 100">
@@ -92,7 +83,7 @@ export function ChessOpeningCard({name, winRate, drawRate, lossRate, averageAccu
               >{`${averageAccuracy}%`}</text>
             </svg>
           </div>
-          </div>
+        </div>
       </CardContent>
     </Card>
   );

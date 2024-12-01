@@ -36,7 +36,7 @@ function StatCard(props : PercentageInfo) {
       </CardHeader>
       <CardBody className="text-center">
         <Typography variant="h4" color="blue-gray" className="mt-8">
-          {props.opening}
+          ""
         </Typography>
 
         <div className="flex justify-between">
@@ -46,9 +46,9 @@ function StatCard(props : PercentageInfo) {
         </div>
 
         <ProgressBar
-          winPercentage={props.winPercentage}
-          lossPercentage={props.lossPercentage}
-          drawPercentage={props.drawPercentage}
+          winPercentage={props.getWin()}
+          lossPercentage={props.getLoss()}
+          drawPercentage={props.getDraw()}
         />
       </CardBody>
     </Card>
